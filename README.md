@@ -245,9 +245,3 @@ project:
     contains password and sensitive data from the variables.
     So before it can be committed, a process needs to be created where passwords
     are replaced before being committed.
-  - There is a bug in the code when deleting a note. The code is throwing this
-   error:
-   `DetachedInstanceError: Parent instance <Note at 0x7f7> is not bound to a Session; lazy load operation of attribute 'pad' cannot proceed`
-   I would need to dig through the code and take a look at the models, but
-   this isn't necessary for the purpose of this project.
-   As a side note, the full logs are available on CloudWatch logs!
