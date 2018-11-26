@@ -1,0 +1,35 @@
+---
+
+- name: Install perl and dependencies
+  apt: name={{ item }} update_cache=yes state=present
+  with_items:
+    - libwww-perl
+    - libdatetime-perl
+    - unzip
+  tags:
+    - packages
+
+- name: Create configuration directory for CloudWatch logs agent
+  file: name=/usr/local/src/cw-monitoring
+        mode=755
+        state=directory
+  tags:
+    - cloudwatch_logs
+
+- name: Download and unzip CloudWatch Monitoring Scripts
+  unarchive:
+    src=https://aws-cloudwatch.s3.amazonaws.com/downloads/CloudWatchMonitoringScripts-1.2.2.zip
+    dest=/usr/local/src/cw-monitoring
+    remote_src=yes
+    creates=/usr/local/src/cw-monitoring/aws-scripts-mon/
+  tags:
+    - cloudwatch_extra_metrics
+
+- name: Setup cron job to run the monitoring script every minute
+  cron: name="Send memory metrics to CloudWatch"
+        minute="*/5" hour="*" day="*" month="*" weekday="*"
+        user=root
+        job="/usr/local/src/cw-monitoring/aws-scripts-mon/mon-put-instance-data.pl --mem-used-incl-cache-buff --mem-util --mem-used --mem-avail"
+        state=present
+  tags:
+    - cloudwatch_extra_metrics

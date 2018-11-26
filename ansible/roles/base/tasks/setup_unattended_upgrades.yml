@@ -1,0 +1,17 @@
+---
+
+- name: Ensure unattended-upgrades is the latest version
+  apt: name=unattended-upgrades update_cache=yes state=latest
+
+- name: Configure unattended-upgrades and disable automatic upgrades
+  template: src="{{ item }}.j2"
+            dest="/etc/apt/apt.conf.d/{{ item }}"
+            owner=root
+            group=root
+            mode=0644
+  with_items:
+    - 50unattended-upgrades
+    - 10periodic
+
+- name: Update security packages
+  command: unattended-upgrade --debug

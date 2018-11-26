@@ -1,0 +1,37 @@
+---
+
+- name: Create a backup of the jenkins data
+  hosts: "{{ hostgroup }}"
+  become: no
+  connection: local
+  vars:
+    - local_backup_dir: /mnt
+    - s3_bucket: backups.domain.com
+    - s3_bucket_prefix: jenkins
+
+  tasks:
+    - name: Ensure that the backup directory exists
+      file: path={{ local_backup_dir }}
+            state=directory
+
+    - name: Register the current date to a variable
+      shell: date +%Y%m%d_%H%M
+      register: current_date
+
+    - name: Remove old file
+      file: path={{ local_backup_dir }}/jenkins.tar.gz
+            state=absent
+
+    - name: Tarball /var/lib/jenkins to attached volume
+      command: tar -cvzf {{ local_backup_dir }}/jenkins.tar.gz /var/lib/jenkins
+
+    - name: Send the backup file to an S3 bucket
+      aws_s3: bucket={{ s3_bucket }}
+              object={{ s3_bucket_prefix }}/jenkins_{{ current_date.stdout }}.tar.gz
+              src={{ local_backup_dir }}/jenkins.tar.gz
+              mode=put
+              profile=default
+
+    - name: Remove old file
+      file: path={{ local_backup_dir }}/jenkins.tar.gz
+            state=absent

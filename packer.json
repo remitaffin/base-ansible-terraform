@@ -1,0 +1,47 @@
+{
+  "variables": {
+    "profile": "{{env `AWS_PROFILE`}}",
+    "region": "us-east-1",
+    "base_ami": "ami-05aa248bfb1c99d0f",
+    "instance_type": "t2.micro",
+    "db_user": "{{env `DBUSER`}}",
+    "db_pass": "{{env `DBPASSWORD`}}",
+    "db_name": "{{env `DBNAME`}}",
+    "db_host": "db-cname.domain.com"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "profile": "{{user `profile`}}",
+      "region": "{{user `region` }}",
+      "source_ami": "{{user `base_ami`}}",
+      "instance_type": "{{user `instance_type` }}",
+      "ssh_username": "ubuntu",
+      "ami_name": "packer-base-{{timestamp}}",
+      "associate_public_ip_address": true,
+      "tags": {
+        "Name": "Packer-Ansible"
+      }
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": ["sudo apt-get install -y python-minimal"]
+    },
+    {
+      "type": "ansible",
+      "playbook_file": "./ansible/prod_app.yml",
+      "extra_arguments": [
+        "--extra-vars", "hostgroup=default skip_volume_format=yes skip_reboot=yes skip_db_init=yes db_user={{user `db_user`}} db_pass={{user `db_pass`}} db_name={{user `db_name`}} db_host={{user `db_host`}}",
+        "--vault-password-file", "ansible/.ansiblevaultpass"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+---
+
+- name: Install MySQL driver
+  apt: name={{ item }} state=present
+  with_items:
+    - python-mysqldb
+  tags:
+    - packages
+
+- name: Install Python dependencies
+  pip: name={{ item }} state=latest
+  with_items:
+    - boto3==1.9.36
+    - virtualenv==16.1.0
+    - setuptools==40.5.0
+    - pip==18.1
+  tags:
+    - packages
+
+- import_tasks: copy_scripts.yml
+  tags:
+    - gunicorn
+    - deploy
+
+- import_tasks: setup_git_repo.yml
+  become: yes
+  become_user: "{{ app_user }}"
+  tags:
+    - git
+    - deploy
+
+- import_tasks: setup_virtualenv.yml
+  become: yes
+  become_user: "{{ app_user }}"
+  tags:
+    - virtualenv
+    - deploy
+
+- name: Make sure tables exist in the database
+  shell: . {{ virtualenv_path }}/bin/activate
+         && . {{ virtualenv_path }}/bin/postactivate
+         && cd {{ project_path }}
+         && python db.py
+  when: skip_db_init is defined and not skip_db_init
+  tags:
+    - migrations
+
+- import_tasks: setup_supervisor.yml
+  tags:
+    - supervisor
+    - gunicorn
+
+- name: Ensure that the project directory permissions are set properly
+  file: path={{ project_path }}
+        recurse=yes
+        owner={{ app_user }}
+        group={{ app_group }}
+        state=directory
+  tags:
+    - deploy
+
+- name: Restart the {{ application_name }} app
+  supervisorctl: name={{ application_name }} state=restarted
+  when: skip_reboot is defined and not skip_reboot
+  tags:
+    - deploy
+    - gunicorn

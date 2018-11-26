@@ -1,0 +1,36 @@
+---
+
+- name: Download CloudWatch logs Agent setup script
+  get_url: url=https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py
+           dest=/tmp/awslogs-agent-setup.py
+           mode=775
+           timeout=20
+  tags:
+    - cloudwatch_logs
+
+- name: Create configuration directory for CloudWatch logs agent
+  file: name=/etc/awslogs
+        mode=755
+        state=directory
+  tags:
+    - cloudwatch_logs
+
+- name: Configure CloudWatch logs agent
+  template: src=awslogs.conf.j2
+            dest=/etc/awslogs/awslogs.conf
+            owner=root
+            group=root
+            mode=644
+  tags:
+    - cloudwatch_logs
+
+- name: Execute CloudWatch logs agent setup script
+  become: yes
+  command: python /tmp/awslogs-agent-setup.py -n -r us-east-1 -c /etc/awslogs/awslogs.conf
+  tags:
+    - cloudwatch_logs
+
+- name: Restart CloudWatch logs
+  service: name=awslogs state=restarted enabled=yes
+  tags:
+    - cloudwatch_logs

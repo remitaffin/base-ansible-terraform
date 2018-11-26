@@ -1,0 +1,5 @@
+[program:{{ application_name }}]
+command = {{ scripts_dir }}/{{ application_name }}/gunicorn_start
+user = {{ app_user }}
+stdout_logfile = /var/log/{{ application_name }}/gunicorn_supervisor.log
+redirect_stderr = true

@@ -1,0 +1,35 @@
+---
+
+- name: Install supervisor
+  apt: name=supervisor state=present
+
+- name: Ensure supervisor service is started
+  service: name=supervisor state=started enabled=yes
+
+- name: Create the Supervisor config file for {{ application_name }}
+  template: src=supervisor_{{ application_name }}.conf.j2
+            dest=/etc/supervisor/conf.d/{{ application_name }}.conf
+
+- name: Create the {{ application_name }} log folder
+  file: path=/var/log/{{ item }}
+        owner={{ app_user }}
+        group={{ app_group }}
+        mode=0774
+        state=directory
+  with_items:
+    - "{{ application_name }}"
+
+- name: Create the log files
+  file: path=/var/log/{{ item }}
+        owner={{ app_user }}
+        group={{ app_group }}
+        mode=0774
+        state=touch
+  with_items:
+    - "{{ application_name }}/gunicorn_supervisor.log"
+
+- name: Re-read the Supervisor config files
+  command: supervisorctl reread
+
+- name: Update Supervisor to add the app in the process group
+  command: supervisorctl update

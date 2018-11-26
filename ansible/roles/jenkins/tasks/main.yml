@@ -1,0 +1,57 @@
+---
+
+- name: Install packages and dependencies
+  apt: name={{ item }} update_cache=yes state=present
+  with_items:
+    - openjdk-8-jdk
+    - icedtea-8-plugin
+    - unzip
+  tags:
+    - jenkins
+
+- name: Use java alternatives 1.8.0
+  command: update-java-alternatives -s java-1.8.0-openjdk-amd64
+  tags:
+    - jenkins
+
+- name: Add the Jenkins public GPG key to the apt repo
+  apt_key: url=http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key
+           state=present
+  tags:
+    - jenkins
+
+- name: Add Jenkins to the trusted sources list
+  apt_repository: repo='deb http://pkg.jenkins-ci.org/debian binary/'
+                  update_cache=yes
+                  state=present
+  tags:
+    - jenkins
+
+- name: Install Jenkins server
+  apt: name=jenkins state=present
+  tags:
+    - jenkins
+
+- import_tasks: install_packer_and_terraform.yml
+  tags:
+    - packages
+
+- import_tasks: install_jmeter.yml
+  tags:
+    - jenkins
+
+- name: Install additional Python packages
+  pip: name={{ item }} state=latest
+  with_items:
+    - ansible==2.6.7
+    - awscli==1.16.48
+  tags:
+    - jenkins
+
+- name: Ensure that the backup volume (/mnt) is owned by jenkins
+  file: path=/mnt
+        owner=jenkins
+        group=jenkins
+        state=directory
+  tags:
+    - jenkins

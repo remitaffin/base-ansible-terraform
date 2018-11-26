@@ -1,0 +1,19 @@
+---
+
+- name: Install packer
+  unarchive:
+    src=https://releases.hashicorp.com/packer/{{ packer_version }}/packer_{{ packer_version }}_linux_amd64.zip
+    dest=/usr/local/bin
+    remote_src=yes
+    creates=/usr/local/bin/packer
+  tags:
+    - packer
+
+- name: Install terraform
+  unarchive:
+    src=https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_amd64.zip
+    dest=/usr/local/bin
+    remote_src=yes
+    creates=/usr/local/bin/terraform
+  tags:
+    - packer

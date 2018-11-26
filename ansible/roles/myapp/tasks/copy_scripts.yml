@@ -1,0 +1,17 @@
+---
+
+- name: Create the scripts directory
+  file: path={{ item }}
+        owner={{ app_user }}
+        group={{ app_group }}
+        mode=0774
+        state=directory
+  with_items:
+    - "{{ scripts_dir }}/{{ project_name }}"
+
+- name: Create the gunicorn script file
+  template: src={{ gunicorn_template_file }}
+            dest={{ scripts_dir }}/{{ project_name }}/gunicorn_start
+            owner={{ app_user }}
+            group={{ app_group }}
+            mode=0755

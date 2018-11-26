@@ -1,0 +1,37 @@
+---
+
+- name: Provision a jenkins server
+  hosts: "{{ hostgroup }}"
+  become: yes
+  become_user: root
+  remote_user: ubuntu
+  vars:
+    - mounted_volumes:
+      - path: /mnt
+        partition: b
+      - path: /var/lib/jenkins
+        partition: f
+    - app_user: appuser
+    - app_group: appuser
+    - nginx_application_name: jenkins
+    - nginx_server_name: "jenkins.domain.com {{ inventory_hostname }}"
+    - cloudwatch_log_group_name: jenkins.domain.com
+    - cloudwatch_log_files:
+      - path: /var/log/syslog
+        stream_name: syslog
+      - path: /var/log/jenkins/jenkins.log
+        stream_name: jenkins
+      - path: /var/log/nginx/jenkins_access.log
+        stream_name: nginx-access
+      - path: /var/log/nginx/jenkins_error.log
+        stream_name: nginx-error
+  vars_files:
+    - git_private_key.yml
+    - secrets.yml
+
+  roles:
+    - base
+    - jenkins
+    - nginx
+    - cloudwatch-logs
+    - cloudwatch-extra-metrics

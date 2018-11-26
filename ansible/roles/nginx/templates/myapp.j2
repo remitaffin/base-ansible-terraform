@@ -1,0 +1,20 @@
+upstream wsgi_server_myapp {
+  server unix:/var/www/myapp/virtualenv/run/gunicorn.sock fail_timeout=0;
+}
+
+server {
+    listen 80;
+    server_name {{ nginx_server_name }};
+
+    access_log /var/log/nginx/myapp_access.log;
+    error_log /var/log/nginx/myapp_error.log;
+
+    location /static {
+        alias /var/www/myapp/myapp/static/;
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://wsgi_server_myapp;
+    }
+}

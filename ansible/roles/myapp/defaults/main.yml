@@ -1,0 +1,18 @@
+---
+
+git_repo: git@github.com:something/replace-me.git
+git_branch: master
+
+server_root_dir: /var/www
+scripts_dir: "{{ server_root_dir }}/scripts"
+
+project_name: myapp
+application_name: myapp
+
+project_path: "{{ server_root_dir }}/{{ project_name }}"
+application_path: "{{ project_path }}/{{ application_name }}"
+virtualenv_path: "{{ project_path }}/virtualenv"
+requirements_file: "{{ project_path }}/requirements.txt"
+gunicorn_max_requests: 0
+gunicorn_num_workers: 3
+gunicorn_template_file: gunicorn_start.j2

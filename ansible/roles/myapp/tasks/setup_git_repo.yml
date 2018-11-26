@@ -1,0 +1,36 @@
+---
+
+- name: Add git ssh key to build
+  copy: content="{{ git_private_key }}"
+        dest=/home/{{ app_user }}/.ssh/id_rsa
+        owner={{ app_user }}
+        group={{ app_group }}
+        mode=0600
+
+- name: Setup the directory for github repo
+  file: path={{ project_path }}
+        owner={{ app_user }}
+        group={{ app_group }}
+        mode=0774
+        recurse=yes
+        state=directory
+
+- name: Setup the git repo
+  git: repo={{ git_repo }}
+       version={{ git_branch }}
+       dest={{ project_path }}
+       accept_hostkey=yes
+
+- name: Remove the git ssh key for security purposes
+  file: path=/home/{{ app_user }}/.ssh/id_rsa
+        state=absent
+
+- name: Remove all .pyc and .pyo files
+  command: find . -name '*.py[co]' -delete
+  args:
+    chdir: "{{ project_path }}"
+
+- name: Remove _pycache_ directories
+  command: find . -type d -name '_pycache_' -delete
+  args:
+    chdir: "{{ project_path }}"

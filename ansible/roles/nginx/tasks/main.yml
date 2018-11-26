@@ -1,0 +1,50 @@
+---
+
+- name: Install Nginx
+  apt: name=nginx state=present
+  tags:
+    - nginx
+
+- name: Update the nginx.conf
+  template: src=nginx.conf.j2
+            dest=/etc/nginx/nginx.conf
+            backup=yes
+  tags:
+    - nginx
+
+- name: Create the Nginx configuration file
+  template: src={{ nginx_template_file }}
+            dest=/etc/nginx/sites-available/{{ nginx_application_name }}
+            backup=yes
+  tags:
+    - nginx
+
+- name: Ensure that the default site is disabled
+  command: rm /etc/nginx/sites-enabled/default
+           removes=/etc/nginx/sites-enabled/default
+  tags:
+    - nginx
+
+- name: Ensure that the application site is enabled
+  command: ln -s /etc/nginx/sites-available/{{ nginx_application_name }}
+           /etc/nginx/sites-enabled/{{ nginx_application_name }}
+           creates=/etc/nginx/sites-enabled/{{ nginx_application_name }}
+  tags:
+    - nginx
+
+- name: Create the logrotate configuration file
+  template: src=logrotate_nginx.j2
+            dest=/etc/logrotate.d/nginx
+  tags:
+    - nginx
+
+- name: Add nginx user (www-data) to the application group
+  user: name=www-data groups={{ app_group }} state=present
+  tags:
+    - nginx
+
+- name: Restart Nginx
+  service: name=nginx state=restarted enabled=yes
+  tags:
+    - nginx
+    - deploy

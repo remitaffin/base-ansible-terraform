@@ -1,0 +1,23 @@
+---
+
+- name: Ensure mountpoint directory is created
+  file: path={{ item.path }} state=directory
+  with_items: "{{ mounted_volumes }}"
+
+- name: Format the volume
+  filesystem: fstype=ext4 dev=/dev/xvd{{ item.partition | lower }}
+  with_items: "{{ mounted_volumes }}"
+  when: skip_volume_format is defined and not skip_volume_format
+
+- name: Mount volume
+  mount: path={{ item.path }}
+         fstype=ext4
+         src=/dev/xvd{{ item.partition | lower }}
+         state=present
+  with_items: "{{ mounted_volumes }}"
+
+- name: Remove lost+found directory in volumes after mount
+  file: path={{ item.path }}/lost+found
+        state=absent
+  with_items: "{{ mounted_volumes }}"
+  when: skip_volume_format is defined and not skip_volume_format

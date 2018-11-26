@@ -1,0 +1,106 @@
+---
+## TAGS:
+#  - distupgrade: Upgrades all the packages using an apt-get dist-upgrade
+#  - securitypatch: Upgrades only the security packages using unattended-upgrades
+#  - packages: Installs base packages on the server
+
+- name: Update and upgrade all packages to the latest version
+  apt: upgrade=dist update_cache=yes
+  tags:
+    - distupgrade
+
+- import_tasks: setup_unattended_upgrades.yml
+  tags:
+    - securitypatch
+
+- name: Remove old dependencies that are no longer needed
+  apt: autoremove=yes purge=yes
+  tags:
+    - distupgrade
+
+- name: Ensure bash, libssl, openSSH and NTP are the latest versions
+  apt: name={{ item }} update_cache=yes state=latest
+  with_items:
+    - bash
+    - openssh-client
+    - openssh-server
+    - libssl-dev
+    - libssl-doc
+    - ntp
+  tags:
+    - packages
+
+- name: Install base packages
+  apt: name={{ item }} update_cache=yes force=yes state=present
+  with_items:
+    - build-essential
+    - software-properties-common
+    - ntp
+    - htop
+    - vim
+    - git
+    - python-dev
+    - python-pip
+    - libmysqlclient-dev
+    - curl
+  tags:
+    - packages
+
+- name: Install Python dependencies
+  pip: name={{ item }} state=latest
+  with_items:
+    - boto3==1.9.36
+    - virtualenv==16.1.0
+    - setuptools==40.5.0
+    - pip==18.1
+  tags:
+    - packages
+
+- name: Update MOTD
+  template: src=motd.j2
+            dest=/etc/motd
+            owner=root
+            group=root
+            mode=0644
+
+- import_tasks: mount_volumes.yml
+  when: mounted_volumes is defined and mounted_volumes
+  tags:
+    - mount
+
+- name: Create the application user
+  user: name={{ app_user }} shell=/bin/bash state=present
+
+- name: Change mode to 700 on the .ssh directory
+  file: state=directory
+        path=/home/{{ app_user }}/.ssh
+        owner={{ app_user }}
+        group={{ app_group }}
+        mode=0700
+
+- name: Set the localtime to UTC
+  file: src=/usr/share/zoneinfo/UTC
+        dest=/etc/localtime
+        owner=root
+        group=root
+        state=link
+
+- name: Reboot Server
+  become: yes
+  shell: sleep 2 && /sbin/shutdown -r now "Ansible system packages upgraded"
+  async: 1
+  poll: 0
+  ignore_errors: yes
+  when: skip_reboot is defined and not skip_reboot
+  tags:
+    - distupgrade
+    - securitypatch
+
+- name: Waiting for server to come back
+  become: no
+  local_action: wait_for host={{ inventory_hostname }}
+                port=22 state=started timeout=150 delay=5
+  when: skip_reboot is defined and not skip_reboot
+  tags:
+    - distupgrade
+    - securitypatch

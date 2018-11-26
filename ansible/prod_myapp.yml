@@ -1,0 +1,34 @@
+---
+
+- name: Provision a production myapp server
+  hosts: "{{ hostgroup }}"
+  serial: 1
+  become: yes
+  become_user: root
+  remote_user: ubuntu
+  vars:
+    - mounted_volumes: []
+    - app_user: appuser
+    - app_group: appuser
+    - nginx_application_name: myapp
+    - nginx_server_name: "myapp.domain.com {{ inventory_hostname }}"
+    - cloudwatch_log_group_name: myapp.domain.com
+    - cloudwatch_log_files:
+      - path: /var/log/syslog
+        stream_name: syslog
+      - path: /var/log/myapp/gunicorn_supervisor.log
+        stream_name: gunicorn
+      - path: /var/log/nginx/myapp_access.log
+        stream_name: nginx-access
+      - path: /var/log/nginx/myapp_error.log
+        stream_name: nginx-error
+  vars_files:
+    - git_private_key.yml
+    - secrets.yml
+
+  roles:
+    - base
+    - myapp
+    - nginx
+    - cloudwatch-logs
+    - cloudwatch-extra-metrics

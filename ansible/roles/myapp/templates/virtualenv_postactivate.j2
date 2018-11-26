@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Application variables (from secrets.yml)
+export SECRET_KEY='{{ flask_secret_key }}'
+export IS_PRODUCTION='True'
+
+# Database variables
+# (these values are passed from terraform)
+export DB_USER='{{ db_user }}'
+export DB_PASS='{{ db_pass }}'
+export DB_HOST='{{ db_host }}'
+export DB_DB='{{ db_name }}'

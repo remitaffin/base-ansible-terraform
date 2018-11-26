@@ -1,0 +1,53 @@
+---
+
+- name: Ensure temp requirements file exists
+  file: path="{{ project_path }}/.current_version_requirements" state=touch
+
+- name: Calculate md5 of temp requirements
+  stat: path="{{ project_path }}/.current_version_requirements"
+        get_checksum=yes
+        checksum_algorithm=md5
+  register: temp_requirements_stat
+
+- name: Calculate md5 of current requirements
+  stat: path="{{ requirements_file }}"
+        get_checksum=yes
+        checksum_algorithm=md5
+  register: current_requirements_stat
+
+- name: Check requirement files for changes
+  command: test {{ temp_requirements_stat.stat.checksum }} = {{ current_requirements_stat.stat.checksum }}
+  changed_when: "requirements_check.rc != 0"
+  failed_when: requirements_check.stderr
+  register: requirements_check
+
+- name: Remove virtualenv
+  file: path="{{ virtualenv_path }}" state=absent
+  when: requirements_check.changed
+
+- name: Create new virtualenv
+  command: virtualenv {{ virtualenv_path }}
+  when: requirements_check.changed
+
+- name: Install gunicorn inside virtualenv
+  pip: name={{ item }} virtualenv={{ virtualenv_path }}
+  with_items:
+    - gunicorn==19.9.0
+  when: requirements_check.changed
+
+- name: Install packages inside the virtualenv
+  pip: virtualenv={{ virtualenv_path }} requirements={{ requirements_file }}
+  when: requirements_check.changed
+  args:
+    chdir: "{{ application_path }}"
+
+- name: Create the virtualenv postactivate script to set environment variables
+  template: src=virtualenv_postactivate.j2
+            dest={{ virtualenv_path }}/bin/postactivate
+            mode=0644
+            backup=yes
+  when: db_host is defined
+
+- name: Copy current requirements to temp requirements file
+  command: cp {{ requirements_file }} {{ project_path }}/.current_version_requirements
+  when: requirements_check.changed
