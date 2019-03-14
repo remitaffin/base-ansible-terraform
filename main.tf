@@ -378,13 +378,13 @@ resource "aws_instance" "jenkins" {
     command = <<EOD
 cat <<EOF > ansible/aws_hosts
 [jenkins]
-${aws_instance.jenkins.public_ip}
+${self.public_ip}
 EOF
 EOD
   }
 
   provisioner "local-exec" {
-    command = "aws ec2 wait instance-status-ok --instance-ids ${aws_instance.jenkins.id} --profile ${var.aws_profile} --region ${var.aws_region}"
+    command = "aws ec2 wait instance-status-ok --instance-ids ${self.id} --profile ${var.aws_profile} --region ${var.aws_region}"
   }
 
   # Python-minimal is required to run ansible
